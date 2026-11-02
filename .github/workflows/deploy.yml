@@ -81,6 +81,17 @@ jobs:
             DATABRICKS_TOKEN=$(printf '%s' "$DATABRICKS_TOKEN" | tr -d '[:space:]')
             IMAGE="$ACR_NAME.azurecr.io/$IMAGE_NAME:$GITHUB_SHA"
 
+            # Si la app existe pero quedó en estado fallido (p. ej. un primer intento con credencial
+            # inválida), se elimina para recrearla limpia. Una app sana nunca se borra.
+            if az containerapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" > /dev/null 2>&1; then
+              ESTADO=$(az containerapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --query properties.provisioningState --output tsv)
+              echo "Estado actual de la app: $ESTADO"
+              if [ "$ESTADO" != "Succeeded" ]; then
+                echo "La app quedó en estado $ESTADO: se elimina para recrearla"
+                az containerapp delete --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --yes
+              fi
+            fi
+
             if az containerapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" > /dev/null 2>&1; then
               echo "La app existe: actualizando credencial del registry, imagen y secretos"
               az containerapp registry set --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" \

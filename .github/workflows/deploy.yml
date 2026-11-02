@@ -59,10 +59,19 @@ jobs:
           inlineScript: |
             set -e
             az config set extension.use_dynamic_install=yes_without_prompt
+
+            # Limpieza de los secretos: elimina espacios y saltos de línea invisibles que pueden
+            # quedar al copiarlos (por ejemplo con pbcopy). Docker los tolera, az containerapp no.
+            ACR_USERNAME=$(printf '%s' "$ACR_USERNAME" | tr -d '[:space:]')
+            ACR_PASSWORD=$(printf '%s' "$ACR_PASSWORD" | tr -d '[:space:]')
+            DATABRICKS_URL=$(printf '%s' "$DATABRICKS_URL" | tr -d '[:space:]')
+            DATABRICKS_TOKEN=$(printf '%s' "$DATABRICKS_TOKEN" | tr -d '[:space:]')
             IMAGE="$ACR_NAME.azurecr.io/$IMAGE_NAME:$GITHUB_SHA"
 
             if az containerapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" > /dev/null 2>&1; then
-              echo "La app existe: actualizando imagen y secretos"
+              echo "La app existe: actualizando credencial del registry, imagen y secretos"
+              az containerapp registry set --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" \
+                --server "$ACR_NAME.azurecr.io" --username "$ACR_USERNAME" --password "$ACR_PASSWORD"
               az containerapp secret set --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" \
                 --secrets databricks-url="$DATABRICKS_URL" databricks-token="$DATABRICKS_TOKEN"
               az containerapp update --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" \

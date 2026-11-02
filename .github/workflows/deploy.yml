@@ -64,6 +64,19 @@ jobs:
             # quedar al copiarlos (por ejemplo con pbcopy). Docker los tolera, az containerapp no.
             ACR_USERNAME=$(printf '%s' "$ACR_USERNAME" | tr -d '[:space:]')
             ACR_PASSWORD=$(printf '%s' "$ACR_PASSWORD" | tr -d '[:space:]')
+
+            # Credencial vigente del registry leída directamente de Azure (el Service Principal
+            # tiene permiso sobre el Resource Group). Evita fallos si el secreto quedó desactualizado.
+            ACR_USER_AZ=$(az acr credential show --name "$ACR_NAME" --query username --output tsv)
+            ACR_PASS_AZ=$(az acr credential show --name "$ACR_NAME" --query "passwords[0].value" --output tsv)
+            echo "::add-mask::$ACR_PASS_AZ"
+            if [ "$ACR_PASSWORD" = "$ACR_PASS_AZ" ]; then
+              echo "Diagnóstico: el secreto ACR_PASSWORD coincide con el password vigente del registry"
+            else
+              echo "Diagnóstico: el secreto ACR_PASSWORD NO coincide con el password vigente; se usa el de Azure"
+            fi
+            ACR_USERNAME="$ACR_USER_AZ"
+            ACR_PASSWORD="$ACR_PASS_AZ"
             DATABRICKS_URL=$(printf '%s' "$DATABRICKS_URL" | tr -d '[:space:]')
             DATABRICKS_TOKEN=$(printf '%s' "$DATABRICKS_TOKEN" | tr -d '[:space:]')
             IMAGE="$ACR_NAME.azurecr.io/$IMAGE_NAME:$GITHUB_SHA"

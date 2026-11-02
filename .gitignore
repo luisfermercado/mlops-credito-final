@@ -1,0 +1,6 @@
+# Nunca subir credenciales ni archivos locales
+.env
+*.env
+secretos*.txt
+__pycache__/
+.DS_Store

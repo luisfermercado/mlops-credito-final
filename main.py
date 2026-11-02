@@ -18,7 +18,7 @@ from pydantic import BaseModel, ConfigDict, Field
 VERSION = "1.0.0"
 DATABRICKS_URL = os.environ.get("DATABRICKS_URL")
 DATABRICKS_TOKEN = os.environ.get("DATABRICKS_TOKEN")
-TIMEOUT_SEGUNDOS = 120  # margen para el cold start del endpoint
+TIMEOUT_SEGUNDOS = 220  # margen para el cold start de Databricks (el ingress de Azure corta a los 240 s)
 
 # Las 14 variables exactas del modelo (NB02), mismo nombre y tipo que su firma.
 FEATURES = [

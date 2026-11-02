@@ -1,0 +1,28 @@
+name: Keep-alive del endpoint (evita cold start)
+
+# Llama periódicamente a la API pública para que el endpoint de Databricks
+# (con scale-to-zero) no se apague durante el horario en que puede evaluarse.
+# Horario: cada 20 minutos de 06:00 a 22:00 hora de Colombia (11:00-03:00 UTC).
+# Nunca marca error: si el endpoint está despertando, el siguiente ciclo lo reintenta.
+
+on:
+  schedule:
+    - cron: "7,27,47 11-23 * * *"
+    - cron: "7,27,47 0-2 * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Ping a /health y /predecir
+        run: |
+          API="https://api-credito-final.gentletree-1815579b.northcentralus.azurecontainerapps.io"
+          echo "Health:"
+          curl -s -m 30 "$API/health" || true
+          echo
+          echo "Predicción (cliente real, fila 489 de mlops_credito):"
+          curl -s -m 250 -X POST "$API/predecir" -H "Content-Type: application/json" \
+            -d '{"uso_credito_rotativo": 0.9444, "edad": 34, "atrasos_30_59": 4, "ratio_deuda": 0.4132, "ingreso_mensual": 6984.0, "lineas_credito_abiertas": 6, "atrasos_90_mas": 1, "creditos_hipotecarios": 1, "atrasos_60_89": 1, "dependientes": 2, "ingreso_faltante": 0, "total_atrasos": 6, "ingreso_per_capita": 2328.0, "sobreendeudado": 1}' || true
+          echo
